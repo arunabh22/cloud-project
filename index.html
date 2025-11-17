@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Smart Inventory System</title>
+    <style>
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        /* Main container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header section */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        /* Status bar with last update time and refresh button */
+        .status-bar {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .last-update {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: #5568d3;
+        }
+
+        .refresh-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Grid layout for inventory items */
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* Individual inventory card */
+        .inventory-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .inventory-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .card-icon {
+            font-size: 2rem;
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .card-count {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #667eea;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+
+        .trend {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 600;
+        }
+
+        .trend.up {
+            color: #10b981;
+        }
+
+        .trend.down {
+            color: #ef4444;
+        }
+
+        .trend.stable {
+            color: #f59e0b;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .inventory-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .status-bar {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📦 IoT Smart Inventory System</h1>
+            <p>Real-time monitoring of warehouse inventory levels</p>
+        </div>
+
+        <!-- Status bar with last update and refresh button -->
+        <div class="status-bar">
+            <div class="last-update">
+                <div class="status-indicator"></div>
+                <span><strong>Last Updated:</strong> <span id="lastUpdate">--:--:--</span></span>
+            </div>
+            <button class="refresh-btn" onclick="updateInventory()">🔄 Refresh Data</button>
+        </div>
+
+        <!-- Inventory grid -->
+        <div class="inventory-grid" id="inventoryGrid">
+            <!-- Cards will be dynamically generated here -->
+        </div>
+    </div>
+
+    <script>
+        // Define inventory categories with their configurations
+        const inventoryCategories = [
+            { id: 'electronics', name: 'Electronics', icon: '💻', min: 50, max: 200 },
+            { id: 'furniture', name: 'Furniture', icon: '🪑', min: 20, max: 100 },
+            { id: 'clothing', name: 'Clothing', icon: '👕', min: 100, max: 500 },
+            { id: 'tools', name: 'Tools', icon: '🔧', min: 30, max: 150 },
+            { id: 'books', name: 'Books', icon: '📚', min: 80, max: 300 },
+            { id: 'groceries', name: 'Groceries', icon: '🛒', min: 150, max: 600 }
+        ];
+
+        // Store previous counts to calculate trends
+        let previousCounts = {};
+
+        // Initialize the inventory system
+        function initInventory() {
+            const grid = document.getElementById('inventoryGrid');
+            grid.innerHTML = '';
+
+            // Create a card for each category
+            inventoryCategories.forEach(category => {
+                const card = document.createElement('div');
+                card.className = 'inventory-card';
+                card.id = `card-${category.id}`;
+                
+                // Generate initial random count
+                const initialCount = Math.floor(Math.random() * (category.max - category.min + 1)) + category.min;
+                previousCounts[category.id] = initialCount;
+
+                card.innerHTML = `
+                    <div class="card-header">
+                        <span class="card-icon">${category.icon}</span>
+                        <span class="card-title">${category.name}</span>
+                    </div>
+                    <div class="card-count" id="count-${category.id}">${initialCount}</div>
+                    <div class="card-footer">
+                        <span class="trend stable" id="trend-${category.id}">
+                            <span>—</span> Stable
+                        </span>
+                        <span>Units</span>
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+
+            updateTimestamp();
+        }
+
+        // Update inventory counts with simulated data
+        function updateInventory() {
+            inventoryCategories.forEach(category => {
+                // Generate new count (within range of previous count for realistic changes)
+                const prevCount = previousCounts[category.id];
+                const change = Math.floor(Math.random() * 21) - 10; // Random change between -10 and +10
+                let newCount = prevCount + change;
+                
+                // Ensure count stays within min/max bounds
+                newCount = Math.max(category.min, Math.min(category.max, newCount));
+                
+                // Update the count display
+                const countElement = document.getElementById(`count-${category.id}`);
+                countElement.textContent = newCount;
+                
+                // Animate the count change
+                countElement.style.transform = 'scale(1.1)';
+                setTimeout(() => {
+                    countElement.style.transform = 'scale(1)';
+                }, 200);
+                
+                // Update trend indicator
+                const trendElement = document.getElementById(`trend-${category.id}`);
+                if (newCount > prevCount) {
+                    trendElement.className = 'trend up';
+                    trendElement.innerHTML = '<span>↑</span> Increasing';
+                } else if (newCount < prevCount) {
+                    trendElement.className = 'trend down';
+                    trendElement.innerHTML = '<span>↓</span> Decreasing';
+                } else {
+                    trendElement.className = 'trend stable';
+                    trendElement.innerHTML = '<span>—</span> Stable';
+                }
+                
+                // Store new count as previous for next update
+                previousCounts[category.id] = newCount;
+            });
+
+            updateTimestamp();
+        }
+
+        // Update the last update timestamp
+        function updateTimestamp() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            document.getElementById('lastUpdate').textContent = timeString;
+        }
+
+        // Smooth transition for count changes
+        document.addEventListener('DOMContentLoaded', () => {
+            const style = document.createElement('style');
+            style.textContent = `
+                .card-count {
+                    transition: transform 0.2s ease;
+                }
+            `;
+            document.head.appendChild(style);
+        });
+
+        // Initialize the system when page loads
+        initInventory();
+
+        // Auto-update every 5 seconds (5000 milliseconds)
+        setInterval(updateInventory, 5000);
+    </script>
+</body>
+</html>
