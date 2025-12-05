@@ -1,330 +1,182 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IoT Smart Inventory System</title>
-    <style>
-        /* Reset and base styles */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-            color: #333;
-        }
-
-        /* Main container */
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        /* Header section */
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            color: white;
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-
-        /* Status bar with last update time and refresh button */
-        .status-bar {
-            background: white;
-            padding: 15px 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        .last-update {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .status-indicator {
-            width: 12px;
-            height: 12px;
-            background: #10b981;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .refresh-btn {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: background 0.3s ease;
-        }
-
-        .refresh-btn:hover {
-            background: #5568d3;
-        }
-
-        .refresh-btn:active {
-            transform: scale(0.98);
-        }
-
-        /* Grid layout for inventory items */
-        .inventory-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        /* Individual inventory card */
-        .inventory-card {
-            background: white;
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .inventory-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-        }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 15px;
-        }
-
-        .card-icon {
-            font-size: 2rem;
-        }
-
-        .card-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: #333;
-        }
-
-        .card-count {
-            font-size: 3rem;
-            font-weight: bold;
-            color: #667eea;
-            margin: 15px 0;
-            text-align: center;
-        }
-
-        .card-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-top: 15px;
-            border-top: 1px solid #e5e7eb;
-            font-size: 0.9rem;
-            color: #6b7280;
-        }
-
-        .trend {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-weight: 600;
-        }
-
-        .trend.up {
-            color: #10b981;
-        }
-
-        .trend.down {
-            color: #ef4444;
-        }
-
-        .trend.stable {
-            color: #f59e0b;
-        }
-
-        /* Responsive design */
-        @media (max-width: 768px) {
-            .header h1 {
-                font-size: 2rem;
-            }
-
-            .inventory-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .status-bar {
-                flex-direction: column;
-                text-align: center;
-            }
-        }
-    </style>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>RFID Inventory — Milk & Cheese</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; 
+           max-width:900px; margin:40px auto; color:#111; padding:0 18px; }
+    h1 { margin-bottom:6px; }
+    p.lead { color:#555; margin-top:0; }
+    .card { border:1px solid #e6e6e6; padding:16px; border-radius:8px; 
+            box-shadow:0 1px 2px rgba(0,0,0,0.05); margin-top:18px;
+            display:flex; justify-content:space-between; align-items:center; }
+    .name { font-weight:600; font-size:1.05rem; }
+    .tag { font-family: monospace; color:#333; background:#f7f7f7; padding:6px 10px; border-radius:6px; }
+    .time { color:#666; font-size:0.9rem; }
+    .empty { color:#777; text-align:center; padding:28px 0; }
+    footer { margin-top:28px; color:#888; font-size:0.9rem; }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <h1>📦 IoT Smart Inventory System</h1>
-            <p>Real-time monitoring of warehouse inventory levels</p>
-        </div>
 
-        <!-- Status bar with last update and refresh button -->
-        <div class="status-bar">
-            <div class="last-update">
-                <div class="status-indicator"></div>
-                <span><strong>Last Updated:</strong> <span id="lastUpdate">--:--:--</span></span>
-            </div>
-            <button class="refresh-btn" onclick="updateInventory()">🔄 Refresh Data</button>
-        </div>
+  <h1>RFID Inventory</h1>
+  <p class="lead">Live inventory updates from your RFID scanner (Milk & Cheese only)</p>
 
-        <!-- Inventory grid -->
-        <div class="inventory-grid" id="inventoryGrid">
-            <!-- Cards will be dynamically generated here -->
-        </div>
-    </div>
+  <div id="list"></div>
+  <div id="message" class="empty">Loading…</div>
 
-    <script>
-        // Define inventory categories with their configurations
-        const inventoryCategories = [
-            { id: 'electronics', name: 'Electronics', icon: '💻', min: 50, max: 200 },
-            { id: 'furniture', name: 'Furniture', icon: '🪑', min: 20, max: 100 },
-            { id: 'clothing', name: 'Clothing', icon: '👕', min: 100, max: 500 },
-            { id: 'tools', name: 'Tools', icon: '🔧', min: 30, max: 150 },
-            { id: 'books', name: 'Books', icon: '📚', min: 80, max: 300 },
-            { id: 'groceries', name: 'Groceries', icon: '🛒', min: 150, max: 600 }
-        ];
+  <footer>
+    <div id="info">Source: <span id="source"></span></div>
+  </footer>
 
-        // Store previous counts to calculate trends
-        let previousCounts = {};
+<script>
+/*
+  ------------------------------------------------------------------
+  WHERE TO INPUT YOUR CLOUDANT CREDENTIALS
+  ------------------------------------------------------------------
+  CLOUDANT_HOST     → from service credentials field "host"
+  CLOUDANT_USERNAME → from Cloudant Dashboard → Permissions → Generate API Key
+  CLOUDANT_PASSWORD → the API key password (shown once)
+*/
 
-        // Initialize the inventory system
-        function initInventory() {
-            const grid = document.getElementById('inventoryGrid');
-            grid.innerHTML = '';
+// ---------------------------
+// 🔧 INPUT YOUR DETAILS HERE
+// ---------------------------
 
-            // Create a card for each category
-            inventoryCategories.forEach(category => {
-                const card = document.createElement('div');
-                card.className = 'inventory-card';
-                card.id = `card-${category.id}`;
-                
-                // Generate initial random count
-                const initialCount = Math.floor(Math.random() * (category.max - category.min + 1)) + category.min;
-                previousCounts[category.id] = initialCount;
+// 1️⃣ CLOUDANT HOST (from service credentials "host")
+const CLOUDANT_HOST = "edcecae3-6a3a-41d0-937b-6e683f4daab1-bluemix.cloudantnosqldb.appdomain.cloud";
 
-                card.innerHTML = `
-                    <div class="card-header">
-                        <span class="card-icon">${category.icon}</span>
-                        <span class="card-title">${category.name}</span>
-                    </div>
-                    <div class="card-count" id="count-${category.id}">${initialCount}</div>
-                    <div class="card-footer">
-                        <span class="trend stable" id="trend-${category.id}">
-                            <span>—</span> Stable
-                        </span>
-                        <span>Units</span>
-                    </div>
-                `;
-                
-                grid.appendChild(card);
-            });
+// 2️⃣ CLOUDANT API KEY USERNAME (from Cloudant Dashboard)
+const CLOUDANT_USERNAME = "apikey-v2-2aut8n4i1m8k7grznfg8v7fxmtajfliolvhn64v9gaje";
 
-            updateTimestamp();
-        }
+// 3️⃣ CLOUDANT API KEY PASSWORD (shown once during API key generation)
+const CLOUDANT_PASSWORD = "f88f0d9fb00d15f34a97fc29ce844746";
 
-        // Update inventory counts with simulated data
-        function updateInventory() {
-            inventoryCategories.forEach(category => {
-                // Generate new count (within range of previous count for realistic changes)
-                const prevCount = previousCounts[category.id];
-                const change = Math.floor(Math.random() * 21) - 10; // Random change between -10 and +10
-                let newCount = prevCount + change;
-                
-                // Ensure count stays within min/max bounds
-                newCount = Math.max(category.min, Math.min(category.max, newCount));
-                
-                // Update the count display
-                const countElement = document.getElementById(`count-${category.id}`);
-                countElement.textContent = newCount;
-                
-                // Animate the count change
-                countElement.style.transform = 'scale(1.1)';
-                setTimeout(() => {
-                    countElement.style.transform = 'scale(1)';
-                }, 200);
-                
-                // Update trend indicator
-                const trendElement = document.getElementById(`trend-${category.id}`);
-                if (newCount > prevCount) {
-                    trendElement.className = 'trend up';
-                    trendElement.innerHTML = '<span>↑</span> Increasing';
-                } else if (newCount < prevCount) {
-                    trendElement.className = 'trend down';
-                    trendElement.innerHTML = '<span>↓</span> Decreasing';
-                } else {
-                    trendElement.className = 'trend stable';
-                    trendElement.innerHTML = '<span>—</span> Stable';
-                }
-                
-                // Store new count as previous for next update
-                previousCounts[category.id] = newCount;
-            });
+// 4️⃣ Your database name
+const DB_NAME = "inventory";
 
-            updateTimestamp();
-        }
+// --------------------------------------------------
+// Construct Cloudant HTTPS endpoint
+// --------------------------------------------------
+const ENDPOINT =
+  `https://${CLOUDANT_HOST}/${DB_NAME}/_all_docs?include_docs=true`;
 
-        // Update the last update timestamp
-        function updateTimestamp() {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString();
-            document.getElementById('lastUpdate').textContent = timeString;
-        }
 
-        // Smooth transition for count changes
-        document.addEventListener('DOMContentLoaded', () => {
-            const style = document.createElement('style');
-            style.textContent = `
-                .card-count {
-                    transition: transform 0.2s ease;
-                }
-            `;
-            document.head.appendChild(style);
-        });
+// -----------------------------
+// Product mappings
+// -----------------------------
+const TAG_MAP = {
+  "E264F905": "Milk",
+  "648EF705": "Cheese"
+};
 
-        // Initialize the system when page loads
-        initInventory();
 
-        // Auto-update every 5 seconds (5000 milliseconds)
-        setInterval(updateInventory, 5000);
-    </script>
+// ---------------------------
+// Cloudant Basic Auth
+// ---------------------------
+function basicAuthHeader(user, pass) {
+  return 'Basic ' + btoa(user + ':' + pass);
+}
+
+
+// -----------------------------
+// Fetch and normalize docs
+// -----------------------------
+async function fetchDocs() {
+  const headers = {
+    'Authorization': basicAuthHeader(CLOUDANT_USERNAME, CLOUDANT_PASSWORD),
+    'Accept': 'application/json'
+  };
+
+  const res = await fetch(ENDPOINT, { method: "GET", headers });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+
+  const json = await res.json();
+
+  if (Array.isArray(json.rows)) {
+    return json.rows.map(r => ({
+      _id: r.id,
+      tag: r.doc.tag || r.id,
+      last_seen: r.doc.last_seen || null,
+      count: r.doc.count || 0
+    }));
+  }
+
+  return [];
+}
+
+
+// -----------------------------
+// Helpers
+// -----------------------------
+function prettyTime(ts) {
+  if (!ts) return "—";
+  const sec = Math.round((Date.now() - ts) / 1000);
+  if (sec < 60) return sec + "s ago";
+  if (sec < 3600) return Math.round(sec/60) + "m ago";
+  return new Date(ts).toLocaleString();
+}
+
+
+// -----------------------------
+// Render UI
+// -----------------------------
+function render(docs) {
+  const list = document.getElementById("list");
+  const msg  = document.getElementById("message");
+  document.getElementById("source").textContent = ENDPOINT;
+
+  const filtered = docs.filter(d => TAG_MAP[d.tag]);
+
+  if (filtered.length === 0) {
+    msg.textContent = "No mapped items found.";
+    list.innerHTML = "";
+    return;
+  }
+
+  msg.textContent = "";
+  list.innerHTML = "";
+
+  Object.keys(TAG_MAP).forEach(tagId => {
+    const doc = filtered.find(d => d.tag === tagId);
+    if (!doc) return;
+
+    const el = document.createElement("div");
+    el.className = "card";
+    el.innerHTML = `
+      <div>
+        <div class="name">${TAG_MAP[tagId]}</div>
+        <div class="time">Last seen: ${prettyTime(doc.last_seen)}</div>
+        <div class="time">Count: ${doc.count}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="tag">${tagId}</div>
+      </div>
+    `;
+    list.appendChild(el);
+  });
+}
+
+
+// -----------------------------
+// Load Cloudant data
+// -----------------------------
+async function load() {
+  try {
+    const docs = await fetchDocs();
+    render(docs);
+  } catch (err) {
+    console.error(err);
+    document.getElementById("message").textContent =
+      "Could not fetch live data. Check credentials or CORS.";
+  }
+}
+
+load();
+setInterval(load, 5000);
+</script>
+
 </body>
 </html>
